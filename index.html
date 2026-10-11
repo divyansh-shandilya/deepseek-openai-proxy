@@ -1,0 +1,1082 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeepSeek Free OpenAI Proxy</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --card-bg: #ffffff;
+      --border: #e5e5e5;
+      --border-dark: #111111;
+      --text: #0a0a0a;
+      --text-muted: #666666;
+      --text-subtle: #888888;
+      --code-bg: #f9f9f9;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding: 48px 20px 80px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 680px;
+    }
+    .header {
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 8px;
+      border: 1px solid var(--border-dark);
+      border-radius: 4px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Stepper Navigation */
+    .stepper-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      margin-bottom: 24px;
+      background: #fafafa;
+      gap: 3px;
+    }
+    .step-nav-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .step-nav-btn.active {
+      background: #000000;
+      color: #ffffff;
+    }
+    .step-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #e5e5e5;
+      color: #000000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-nav-btn.active .step-circle {
+      background: #ffffff;
+      color: #000000;
+    }
+    .step-line {
+      width: 6px;
+      height: 1px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    @media (max-width: 640px) {
+      .step-nav-text {
+        display: none;
+      }
+      .step-nav-btn {
+        padding: 8px 4px;
+      }
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      background: var(--card-bg);
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .step-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #000000;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* GitHub Star Card (Step 1) */
+    .star-gate-card {
+      border: 1px solid #111111;
+      border-radius: 8px;
+      padding: 22px;
+      background: #fafafa;
+      margin-top: 10px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+    .star-gate-badge {
+      display: inline-block;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 3px 8px;
+      background: #000000;
+      color: #ffffff;
+      border-radius: 3px;
+    }
+    .star-gate-badge.completed-badge {
+      background: #ffffff;
+      color: #000000;
+      border: 1px solid #111111;
+    }
+    .star-gate-warning {
+      background: #ffffff;
+      border: 1px solid #111111;
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #000000;
+      margin: 16px 0;
+    }
+    .star-gate-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Hero Action Card (Step 1) */
+    .hero-action-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fafafa;
+      overflow: hidden;
+      margin: 18px 0;
+    }
+    .hero-action-body {
+      padding: 30px 20px 26px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .bookmarklet-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #000000;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 13px 28px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      user-select: none;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+    .bookmarklet-btn:hover {
+      background: #262626;
+      transform: translateY(-1px);
+    }
+    .bookmarklet-btn:active {
+      cursor: grabbing;
+    }
+    .drag-hint {
+      margin-top: 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .drag-subhint {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .hero-action-footer {
+      border-top: 1px solid var(--border);
+      background: #f4f4f4;
+      padding: 12px 18px;
+      font-size: 12.5px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Clean Step Flow Cards (Step 2) */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .flow-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fafafa;
+      transition: border-color 0.15s ease;
+    }
+    .flow-item:hover {
+      border-color: #cccccc;
+    }
+    .flow-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #000000;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .flow-content {
+      flex: 1;
+    }
+    .flow-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .flow-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Copy Rows */
+    .copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .btn-copy {
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #000000;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .btn-copy:hover {
+      background: #262626;
+    }
+
+    /* Form & Input Rows */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .input-field {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border-dark);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: #ffffff;
+      color: #000000;
+    }
+    .input-field:focus {
+      outline: 2px solid #000000;
+    }
+    kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      background: #ffffff;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+      color: #111111;
+      margin: 0 2px;
+    }
+
+    /* Action Buttons */
+    .wizard-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-primary {
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #000000;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary:hover {
+      background: #262626;
+    }
+    .btn-secondary {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #ffffff;
+      color: #000000;
+      border: 1px solid #111111;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-secondary:hover {
+      background: #f5f5f5;
+    }
+    .btn-text {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-text:hover {
+      color: #000000;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      margin: 18px 0 12px 0;
+    }
+    .tab-item {
+      padding: 6px 12px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab-item.active {
+      color: #000000;
+      font-weight: 600;
+      border-bottom-color: #000000;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text);
+      overflow-x: auto;
+      margin: 10px 0;
+      line-height: 1.45;
+    }
+    details summary {
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      padding: 8px 0;
+    }
+
+    /* Modern Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #000000;
+      color: #ffffff;
+      padding: 11px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 9999;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="header">
+      <div class="badge">Zero-Config Free Proxy</div>
+      <h1>DeepSeek OpenAI Proxy</h1>
+      <p class="subtitle">Connect DeepSeek R1 & V3 directly into Cursor, VS Code, Cline, or any OpenAI client. No coding, no terminal, and no payment required.</p>
+    </div>
+
+    <!-- Stepper Header -->
+    <div class="stepper-nav">
+      <button class="step-nav-btn active" id="nav-step-1" onclick="goToStep(1)">
+        <span class="step-circle">1</span> <span class="step-nav-text">Star Repo</span>
+      </button>
+      <div class="step-line"></div>
+      <button class="step-nav-btn" id="nav-step-2" onclick="goToStep(2)">
+        <span class="step-circle">2</span> <span class="step-nav-text">Add Bookmark</span>
+      </button>
+      <div class="step-line"></div>
+      <button class="step-nav-btn" id="nav-step-3" onclick="goToStep(3)">
+        <span class="step-circle">3</span> <span class="step-nav-text">Get Key</span>
+      </button>
+      <div class="step-line"></div>
+      <button class="step-nav-btn" id="nav-step-4" onclick="goToStep(4)">
+        <span class="step-circle">4</span> <span class="step-nav-text">Verify Key</span>
+      </button>
+      <div class="step-line"></div>
+      <button class="step-nav-btn" id="nav-step-5" onclick="goToStep(5)">
+        <span class="step-circle">5</span> <span class="step-nav-text">Connect App</span>
+      </button>
+    </div>
+
+    <!-- STEP 1: Star Repo on GitHub -->
+    <div id="step-panel-1" class="step-panel card">
+      <div class="card-title">
+        <span class="step-badge">1</span>
+        <span>Star the Project on GitHub</span>
+      </div>
+      <p class="card-desc">
+        This proxy is 100% free and open-source. Starring the project repository on GitHub is mandatory before accessing the setup.
+      </p>
+
+      <div class="star-gate-card" id="star-gate-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <span class="star-gate-badge">Mandatory Requirement</span>
+          <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted);">Step 1 of 5</span>
+        </div>
+
+        <div style="font-size: 15px; font-weight: 700; color: #000000; margin-bottom: 6px;">
+          Support This Free Tool
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
+          Starring on GitHub helps keep this project active, maintained against DeepSeek web updates, and free for the community.
+        </p>
+
+        <div class="star-gate-warning">
+          <strong>Important Instructions (Please Read):</strong>
+          <div style="margin-top: 8px; line-height: 1.6;">
+            1. Click <strong>Star on GitHub</strong> below to open the official repository in a new tab.<br>
+            2. On GitHub, click the <strong>Star</strong> button near the top right of the page.<br>
+            3. <strong>Do NOT download, clone, or install anything:</strong> You do NOT need to run any code or commands on your computer. This proxy runs 100% in the cloud for you.<br>
+            4. Come back to this tab and click <strong>I Have Starred: Continue to Step 2</strong> to proceed.
+          </div>
+        </div>
+
+        <div class="star-gate-actions" id="star-actions-container">
+          <a href="https://github.com/divyansh-shandilya/deepseek-openai-proxy" target="_blank" class="btn-primary" id="btn-star-github" onclick="markGithubStarOpened()">
+            Star on GitHub
+          </a>
+          <button id="btn-confirm-star" class="btn-secondary" style="display: none;" onclick="confirmGithubStarAndAdvance()">
+            I Have Starred: Continue to Step 2 →
+          </button>
+        </div>
+        <div id="star-opened-hint" style="display: none; font-size: 12.5px; color: var(--text-muted); margin-top: 12px; line-height: 1.45;">
+          GitHub opened in a new tab. After clicking the Star button on GitHub, click <strong>I Have Starred: Continue to Step 2</strong> above.
+        </div>
+      </div>
+
+      <div id="star-already-completed" style="display: none; padding: 14px 18px; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; margin-top: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="star-gate-badge completed-badge">Completed</span>
+            <span style="font-size: 13px; font-weight: 600; color: #000000;">GitHub Repository Starred</span>
+          </div>
+          <button class="btn-primary" onclick="goToStep(2)">Proceed to Step 2: Add Bookmark →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Add Bookmark -->
+    <div id="step-panel-2" class="step-panel card" style="display: none;">
+      <div class="card-title">
+        <span class="step-badge">2</span>
+        <span>Add Key Grabber to Bookmarks</span>
+      </div>
+      <p class="card-desc">Drag this button up to your browser's Bookmarks bar. This will let you grab your DeepSeek key in 1 click whenever you need it:</p>
+
+      <div id="bookmarklet-action-card" class="hero-action-card">
+        <div class="hero-action-body">
+          <a class="bookmarklet-btn" href="javascript:(function(){try{let t='';const raw=localStorage.getItem('userToken');if(raw){try{const p=JSON.parse(raw);t=(p&&typeof p==='object')?(p.value||p.token||''):p;}catch(e){t=raw;}}if(typeof t==='string'){t=t.trim();while(t.toLowerCase().startsWith('bearer '))t=t.substring(7).trim();}if(!t||t==='null'||t==='undefined'||t==='{}'||t.length<10){return alert('Key NOT copied: You are not logged in. Please sign in to chat.deepseek.com first and try again.');}try{navigator.clipboard.writeText(t);}catch(e){}try{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}catch(e){}alert('Copied DeepSeek API Key to clipboard!');}catch(e){alert('Key NOT copied: '+e);}})();" onclick="showToast('Drag this button to your Bookmarks Bar (press Ctrl+Shift+B if hidden)'); return false;">
+            <span>DeepSeek Key Grabber</span>
+          </a>
+          <div class="drag-hint">Click and drag this button up into your bookmarks bar</div>
+          <div class="drag-subhint">Once placed in your bookmarks, you can get your key anytime with a single click.</div>
+        </div>
+        <div class="hero-action-footer">
+          <span><strong>Bookmarks bar hidden?</strong> Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> (or <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> on Mac) to reveal it.</span>
+        </div>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="goToStep(1)">← Back to Step 1</button>
+        <button class="btn-primary" onclick="goToStep(3)">Next: Get Key from DeepSeek →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Get Key from DeepSeek -->
+    <div id="step-panel-3" class="step-panel card" style="display: none;">
+      <div class="card-title">
+        <span class="step-badge">3</span>
+        <span>Get Your Key from DeepSeek</span>
+      </div>
+      <p class="card-desc">Follow these 3 simple steps to copy your key directly from your browser session:</p>
+
+      <div class="flow-steps">
+        <div class="flow-item">
+          <div class="flow-badge">1</div>
+          <div class="flow-content">
+            <div class="flow-title">Open DeepSeek & Sign In</div>
+            <p class="flow-desc">
+              Open DeepSeek in a new browser tab. Make sure you are signed in so your account session is active.
+            </p>
+            <div style="margin-top: 10px;">
+              <a href="https://chat.deepseek.com" target="_blank" class="btn-primary" style="font-size: 12.5px; padding: 7px 16px; display: inline-flex; align-items: center;">
+                <span>Open chat.deepseek.com</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-badge">2</div>
+          <div class="flow-content">
+            <div class="flow-title">Click the Bookmarklet</div>
+            <p class="flow-desc">
+              While on the <strong>chat.deepseek.com</strong> tab, click the <strong>DeepSeek Key Grabber</strong> bookmark in your browser bar.
+            </p>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-badge">3</div>
+          <div class="flow-content">
+            <div class="flow-title">Key Copied to Clipboard</div>
+            <p class="flow-desc">
+              A popup will confirm the key is copied. Your API key is now on your clipboard, ready to use.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="goToStep(2)">← Back to Step 2</button>
+        <button class="btn-primary" onclick="goToStep(4)">Next: Verify Key →</button>
+      </div>
+
+      <div style="text-align: center; margin-top: 14px;">
+        <button class="btn-text" onclick="goToStep(5)" style="font-size: 12px; color: var(--text-subtle);">Already have your key? Skip to Step 5 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Verify Token Panel -->
+    <div id="step-panel-4" class="step-panel card" style="display: none;">
+      <div class="card-title">
+        <span class="step-badge">4</span>
+        <span>Verify Your API Key (Optional)</span>
+      </div>
+      <p class="card-desc">Paste your key below to test and confirm that it works with the proxy:</p>
+
+      <div>
+        <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Paste Your API Key</label>
+        <div class="input-row">
+          <input type="text" id="test-token-input" class="input-field" placeholder="Paste your key here (Ctrl + V)..." />
+          <button id="btn-test-token" class="btn-primary" onclick="runTokenTest()">Verify Key</button>
+        </div>
+        <div id="test-token-result" style="display: none; padding: 14px; border-radius: 6px; margin-top: 12px;"></div>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="goToStep(3)">← Back to Step 3</button>
+        <button class="btn-primary" onclick="goToStep(5)">Next: Connect to App →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Connect to App Panel -->
+    <div id="step-panel-5" class="step-panel card" style="display: none;">
+      <div class="card-title">
+        <span class="step-badge">5</span>
+        <span>Connect to Your AI App</span>
+      </div>
+      <p class="card-desc">Enter these 3 values into your IDE, extension, or OpenAI-compatible client:</p>
+
+      <div>
+        <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">1. Base URL</label>
+        <div class="copy-row">
+          <span id="base-url-text">https://deepseek-setup.antigravity-cloudflare-worker.workers.dev/v1</span>
+          <button class="btn-copy" onclick="copyText('base-url-text', 'Base URL')">Copy URL</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">2. API Key</label>
+        <div class="copy-row">
+          <span id="api-key-display" style="font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 440px; color: var(--text-muted);">
+            (Verified key will appear here, or paste from clipboard)
+          </span>
+          <button class="btn-copy" id="btn-copy-api-key" onclick="copyTokenStep5()">Copy API Key</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">3. Model Name</label>
+        <div class="copy-row">
+          <span id="model-name-text">deepseek-reasoner</span>
+          <button class="btn-copy" onclick="copyText('model-name-text', 'Model Name')">Copy Model</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Note: You can also use <code>deepseek-chat</code> for standard conversational mode without extended reasoning.
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab-item active" onclick="switchIdeTab('cursor')">Cursor Instructions</div>
+        <div class="tab-item" onclick="switchIdeTab('vscode')">VS Code / Cline</div>
+        <div class="tab-item" onclick="switchIdeTab('clients')">Other AI Apps</div>
+        <div class="tab-item" onclick="switchIdeTab('python')">Python SDK</div>
+      </div>
+
+      <div id="tab-ide-cursor" class="tab-content active">
+        <pre><code>1. Open Cursor Settings (gear icon).
+2. Go to "Models" -> "OpenAI".
+3. Turn ON "Override OpenAI Base URL" and enter:
+   https://deepseek-setup.antigravity-cloudflare-worker.workers.dev/v1
+4. In "OpenAI API Key", paste your API key.
+5. In model list, add: deepseek-reasoner (or deepseek-chat)</code></pre>
+      </div>
+
+      <div id="tab-ide-vscode" class="tab-content">
+        <pre><code>In Cline / Continue / Roo Code settings:
+Provider: OpenAI Compatible
+Base URL: https://deepseek-setup.antigravity-cloudflare-worker.workers.dev/v1
+API Key: Paste your API key
+Model ID: deepseek-reasoner</code></pre>
+      </div>
+
+      <div id="tab-ide-clients" class="tab-content">
+        <pre><code>In NextChat, Chatbox, or LibreChat:
+API Provider: OpenAI
+Base URL (API Host): https://deepseek-setup.antigravity-cloudflare-worker.workers.dev/v1
+API Key: Paste your API key
+Model: deepseek-reasoner</code></pre>
+      </div>
+
+      <div id="tab-ide-python" class="tab-content">
+        <pre><code id="py-sdk-code">from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://deepseek-setup.antigravity-cloudflare-worker.workers.dev/v1",
+    api_key="PASTE_YOUR_API_KEY_HERE"
+)
+
+response = client.chat.completions.create(
+    model="deepseek-reasoner",
+    messages=[{"role": "user", "content": "Hello!"}],
+    stream=True
+)
+for chunk in response:
+    print(chunk.choices[0].delta.content or "", end="")</code></pre>
+      </div>
+
+      <div class="wizard-nav">
+        <button class="btn-secondary" onclick="goToStep(4)">← Back to Verify Key</button>
+        <button class="btn-primary" onclick="goToStep(2)">Start Over</button>
+      </div>
+    </div>
+
+    <!-- Optional Developer Section -->
+    <div class="card">
+      <details>
+        <summary>Want to host your own dedicated worker? (Developers Only)</summary>
+        <p style="font-size: 13px; color: var(--text-muted); margin: 10px 0;">
+          Notice: Normal users do not need this. This proxy is already hosted and running for you online. Only use the commands below if you are a developer hosting your own private Cloudflare instance:
+        </p>
+        <pre><code>git clone https://github.com/divyansh-shandilya/deepseek-openai-proxy.git
+cd deepseek-openai-proxy
+npx wrangler login
+npx wrangler deploy</code></pre>
+        <p style="font-size: 12.5px; color: var(--text-muted);">
+          View open-source repository on <a href="https://github.com/divyansh-shandilya/deepseek-openai-proxy" target="_blank" style="color: #000000; font-weight: 600;">GitHub</a>.
+        </p>
+      </details>
+    </div>
+
+  </div>
+
+  <!-- Modern Floating Toast -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let currentStep = 1;
+    let savedVerifiedToken = '';
+    let toastTimer = null;
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerHTML = msg;
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    function cleanRawToken(str) {
+      let s = (str || '').trim();
+      if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.slice(1, -1).trim();
+      }
+      while (s.toLowerCase().startsWith('bearer ')) {
+        s = s.substring(7).trim();
+      }
+      if (s.startsWith('{')) {
+        try {
+          const p = JSON.parse(s);
+          if (p.token) {
+            s = p.token.trim();
+            while (s.toLowerCase().startsWith('bearer ')) {
+              s = s.substring(7).trim();
+            }
+          }
+        } catch(e) {}
+      }
+      return s;
+    }
+
+    function getProxyApiOrigin() {
+      if (window.location.hostname.includes('workers.dev')) {
+        return window.location.origin;
+      }
+      return 'https://deepseek-setup.antigravity-cloudflare-worker.workers.dev';
+    }
+
+    function getProxyBaseUrl() {
+      return getProxyApiOrigin() + '/v1';
+    }
+
+    function initProxyUrls() {
+      const baseUrl = getProxyBaseUrl();
+      const baseElem = document.getElementById('base-url-text');
+      if (baseElem) baseElem.textContent = baseUrl;
+
+      const cursorPre = document.querySelector('#tab-ide-cursor pre code');
+      if (cursorPre) {
+        cursorPre.textContent = '1. Open Cursor Settings (gear icon).\n2. Go to "Models" -> "OpenAI".\n3. Turn ON "Override OpenAI Base URL" and enter:\n   ' + baseUrl + '\n4. In "OpenAI API Key", paste your API key.\n5. In model list, add: deepseek-reasoner (or deepseek-chat)';
+      }
+      const vscodePre = document.querySelector('#tab-ide-vscode pre code');
+      if (vscodePre) {
+        vscodePre.textContent = 'In Cline / Continue / Roo Code settings:\nProvider: OpenAI Compatible\nBase URL: ' + baseUrl + '\nAPI Key: Paste your API key\nModel ID: deepseek-reasoner';
+      }
+      const clientsPre = document.querySelector('#tab-ide-clients pre code');
+      if (clientsPre) {
+        clientsPre.textContent = 'In NextChat, Chatbox, or LibreChat:\nAPI Provider: OpenAI\nBase URL (API Host): ' + baseUrl + '\nAPI Key: Paste your API key\nModel: deepseek-reasoner';
+      }
+    }
+
+    function updateApiKeyStep5(cleanKey) {
+      savedVerifiedToken = cleanKey;
+      const disp = document.getElementById('api-key-display');
+      if (disp) {
+        disp.textContent = cleanKey;
+        disp.style.color = '#000000';
+        disp.title = cleanKey;
+      }
+      const pyCode = document.getElementById('py-sdk-code');
+      if (pyCode) {
+        pyCode.textContent = 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="' + getProxyBaseUrl() + '",\n    api_key="' + cleanKey + '"\n)\n\nresponse = client.chat.completions.create(\n    model="deepseek-reasoner",\n    messages=[{"role": "user", "content": "Hello!"}],\n    stream=True\n)\nfor chunk in response:\n    print(chunk.choices[0].delta.content or "", end="")';
+      }
+    }
+
+    const testInput = document.getElementById('test-token-input');
+    if (testInput) {
+      testInput.addEventListener('input', function() {
+        const clean = cleanRawToken(this.value);
+        if (clean.length > 20) {
+          updateApiKeyStep5(clean);
+        }
+      });
+    }
+
+    function hasStarredRepo() {
+      return localStorage.getItem('deepseek_proxy_has_starred') === 'true';
+    }
+
+    function markGithubStarOpened() {
+      sessionStorage.setItem('deepseek_proxy_opened_github', 'true');
+      revealConfirmStarButton();
+      showToast('Opening GitHub... Click Star at top right, then return here.');
+    }
+
+    function revealConfirmStarButton() {
+      const confirmBtn = document.getElementById('btn-confirm-star');
+      const hint = document.getElementById('star-opened-hint');
+      if (confirmBtn) confirmBtn.style.display = 'inline-flex';
+      if (hint) hint.style.display = 'block';
+    }
+
+    function confirmGithubStarAndAdvance() {
+      localStorage.setItem('deepseek_proxy_has_starred', 'true');
+      showToast('GitHub star confirmed! Proceeding to Step 2.');
+      renderStarStepStatus();
+      goToStep(2);
+    }
+
+    function renderStarStepStatus() {
+      const isStarred = hasStarredRepo();
+      const card = document.getElementById('star-gate-card');
+      const completedNotice = document.getElementById('star-already-completed');
+
+      if (isStarred) {
+        if (completedNotice) completedNotice.style.display = 'block';
+        if (card) card.style.display = 'none';
+      } else {
+        if (completedNotice) completedNotice.style.display = 'none';
+        if (card) card.style.display = 'block';
+        if (sessionStorage.getItem('deepseek_proxy_opened_github') === 'true') {
+          revealConfirmStarButton();
+        }
+      }
+    }
+
+    function goToStep(step) {
+      if (step > 1 && !hasStarredRepo()) {
+        showToast('Please star the GitHub repository first to continue.');
+        goToStep(1);
+        return;
+      }
+
+      currentStep = step;
+      document.querySelectorAll('.step-panel').forEach(p => p.style.display = 'none');
+      const panel = document.getElementById('step-panel-' + step);
+      if (panel) panel.style.display = 'block';
+
+      document.querySelectorAll('.step-nav-btn').forEach((btn, idx) => {
+        if (idx + 1 === step) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function copyText(elemId, label) {
+      const text = document.getElementById(elemId).textContent;
+      navigator.clipboard.writeText(text);
+      showToast((label || 'Text') + ' copied to clipboard!');
+    }
+
+    function copyVerifiedToken() {
+      const token = savedVerifiedToken || cleanRawToken(document.getElementById('test-token-input').value);
+      if (token) {
+        navigator.clipboard.writeText(token);
+        showToast('API Key copied to clipboard!');
+      } else {
+        showToast('No key available yet. Paste your key above and verify.');
+      }
+    }
+
+    function copyTokenStep5() {
+      const token = savedVerifiedToken || cleanRawToken(document.getElementById('test-token-input').value);
+      if (token) {
+        navigator.clipboard.writeText(token);
+        showToast('API Key copied to clipboard!');
+      } else {
+        showToast('Please complete Step 3 or verify your key in Step 4.');
+      }
+    }
+
+    function switchIdeTab(ide) {
+      document.querySelectorAll('.tabs .tab-item').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-ide-' + ide).classList.add('active');
+    }
+
+    async function runTokenTest() {
+      const input = document.getElementById('test-token-input');
+      const resBox = document.getElementById('test-token-result');
+      const btn = document.getElementById('btn-test-token');
+      const raw = input.value.trim();
+
+      if (!raw) {
+        showToast('Please paste your API key in the box first');
+        return;
+      }
+
+      const cleanKey = cleanRawToken(raw);
+      if (cleanKey !== raw) {
+        input.value = cleanKey;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+      resBox.style.display = 'block';
+      resBox.style.background = '#fafafa';
+      resBox.style.border = '1px solid #111111';
+      resBox.style.color = '#000000';
+      resBox.innerHTML = 'Verifying key with DeepSeek and solving challenge...';
+
+      try {
+        const resp = await fetch(getProxyApiOrigin() + '/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + cleanKey
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: 'Say OK' }]
+          })
+        });
+
+        const data = await resp.json();
+        if (resp.ok && data.choices && data.choices[0]) {
+          updateApiKeyStep5(cleanKey);
+          showToast('API Key verified and saved to Step 5!');
+          resBox.style.background = '#fafafa';
+          resBox.style.border = '1px solid #111111';
+          resBox.style.color = '#000000';
+          resBox.innerHTML = `
+            <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Key is active and working!</div>
+            <div style="color: #666666; font-size: 13px; margin-bottom: 12px;">DeepSeek answered successfully and your key is saved for Step 5.</div>
+            <div>
+              <button class="btn-copy" onclick="copyVerifiedToken()">Copy Key</button>
+            </div>
+          `;
+        } else {
+          resBox.style.background = '#fafafa';
+          resBox.style.border = '1px solid #111111';
+          resBox.style.color = '#000000';
+          const errMsg = data.error ? data.error.message : JSON.stringify(data);
+          resBox.innerHTML = '<strong>Verification failed:</strong> ' + errMsg;
+          showToast('Verification failed');
+        }
+      } catch (err) {
+        resBox.style.background = '#fafafa';
+        resBox.style.border = '1px solid #111111';
+        resBox.style.color = '#000000';
+        resBox.innerHTML = '<strong>Network error:</strong> ' + err.message;
+        showToast('Network error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify Key';
+      }
+    }
+
+    initProxyUrls();
+    renderStarStepStatus();
+    if (hasStarredRepo()) {
+      goToStep(2);
+    } else {
+      goToStep(1);
+    }
+  </script>
+</body>
+</html>
