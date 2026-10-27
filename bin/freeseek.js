@@ -288,7 +288,7 @@ async function uploadImageToDeepSeek(imgInfo, token, sessionId, baseHeaders) {
     const blob = new Blob([imgInfo.bytes], { type: imgInfo.mimeType });
     formData.append("file", blob, imgInfo.filename);
 
-    const uploadResp = await fetch("https://chat.deepseek.com/api/v0/file/upload", {
+    const uploadResp = await fetch("https://chat.deepseek.com/api/v0/file/upload_file", {
       method: "POST",
       headers: uploadHeaders,
       body: formData,
