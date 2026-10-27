@@ -1,6 +1,6 @@
 {
   "name": "freeseek",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "100% Free OpenAI-compatible proxy for DeepSeek R1 & V3.",
   "main": "src/index.js",
   "bin": {
