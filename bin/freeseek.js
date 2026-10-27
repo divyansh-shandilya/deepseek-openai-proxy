@@ -276,12 +276,44 @@ function extractImagesFromMessages(messages) {
   return urls;
 }
 
+async function getPoWForPath(targetPath, baseHeaders) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const powResp = await fetch("https://chat.deepseek.com/api/v0/chat/create_pow_challenge", {
+        method: "POST",
+        headers: baseHeaders,
+        body: JSON.stringify({ target_path: targetPath }),
+      });
+      if (!powResp.ok) throw new Error(`PoW endpoint HTTP ${powResp.status}`);
+      const powData = await powResp.json();
+      if (powData.code !== 0) throw new Error(powData.msg || "PoW challenge error");
+      const challengeObj = powData.data.biz_data.challenge;
+      const answer = solveDeepSeekPoW(challengeObj);
+      return btoa(JSON.stringify({
+        algorithm: challengeObj.algorithm,
+        challenge: challengeObj.challenge,
+        salt: challengeObj.salt,
+        answer: answer,
+        signature: challengeObj.signature,
+        target_path: challengeObj.target_path,
+      }));
+    } catch (e) {
+      if (attempt < 4) await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+    }
+  }
+  return null;
+}
+
 async function uploadImageToDeepSeek(imgInfo, token, sessionId, baseHeaders) {
   try {
+    const powHeaderValue = await getPoWForPath("/api/v0/file/upload_file", baseHeaders);
     const uploadHeaders = {
       ...baseHeaders,
       "referer": `https://chat.deepseek.com/a/chat/s/${sessionId}`,
     };
+    if (powHeaderValue) {
+      uploadHeaders["x-ds-pow-response"] = powHeaderValue;
+    }
     delete uploadHeaders["content-type"];
 
     const formData = new FormData();
@@ -294,15 +326,21 @@ async function uploadImageToDeepSeek(imgInfo, token, sessionId, baseHeaders) {
       body: formData,
     });
 
-    if (!uploadResp.ok) return null;
+    if (!uploadResp.ok) {
+      console.error(`Image upload HTTP error ${uploadResp.status}`);
+      return null;
+    }
     const uploadData = await uploadResp.json();
-    if (uploadData.code !== 0 || !uploadData.data || !uploadData.data.biz_data) return null;
+    if (uploadData.code !== 0 || !uploadData.data || !uploadData.data.biz_data) {
+      console.error("Image upload API error:", uploadData.msg || uploadData);
+      return null;
+    }
 
     const fileId = uploadData.data.biz_data.id || uploadData.data.biz_data.file_id;
     if (!fileId) return null;
 
-    // Brief poll to wait for status to be ready
-    for (let poll = 0; poll < 4; poll++) {
+    // Brief poll to wait for file parsing to complete
+    for (let poll = 0; poll < 6; poll++) {
       try {
         const statusResp = await fetch(
           `https://chat.deepseek.com/api/v0/file/fetch_files?file_ids=${encodeURIComponent(fileId)}`,
@@ -312,12 +350,12 @@ async function uploadImageToDeepSeek(imgInfo, token, sessionId, baseHeaders) {
           const statusData = await statusResp.json();
           const files = statusData.data?.biz_data?.files || [];
           const f = files.find((item) => item.id === fileId);
-          if (f && f.status && !["PENDING", "UPLOADING", "PROCESSING"].includes(f.status.toUpperCase())) {
+          if (f && f.status && !["PENDING", "UPLOADING", "PARSING", "PROCESSING"].includes(f.status.toUpperCase())) {
             break;
           }
         }
       } catch {}
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 400));
     }
 
     return fileId;
@@ -326,7 +364,6 @@ async function uploadImageToDeepSeek(imgInfo, token, sessionId, baseHeaders) {
     return null;
   }
 }
-
 // -----------------------------------------------------------------------------
 // Prompt Formatting & Session Management
 // -----------------------------------------------------------------------------
